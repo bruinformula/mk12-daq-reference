@@ -1,4 +1,0 @@
-../Runtime/Src/prchg.c:19:6:configurePrchgIgnoreTxMsg	8	static
-../Runtime/Src/prchg.c:23:6:configurePrchgTxMsg	8	static
-../Runtime/Src/prchg.c:28:6:prechargeStart	16	static
-../Runtime/Src/prchg.c:46:6:precharge_loop	16	static

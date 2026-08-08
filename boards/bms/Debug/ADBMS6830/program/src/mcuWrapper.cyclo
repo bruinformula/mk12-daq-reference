@@ -1,7 +1,0 @@
-../ADBMS6830/program/src/mcuWrapper.c:245:6:Delay_ms	1
-../ADBMS6830/program/src/mcuWrapper.c:261:6:adBmsCsLow	1
-../ADBMS6830/program/src/mcuWrapper.c:277:6:adBmsCsHigh	1
-../ADBMS6830/program/src/mcuWrapper.c:297:6:spiWriteBytes	1
-../ADBMS6830/program/src/mcuWrapper.c:322:6:spiWriteReadBytes	1
-../ADBMS6830/program/src/mcuWrapper.c:348:6:spiReadBytes	1
-../ADBMS6830/program/src/mcuWrapper.c:420:6:adBmsWakeupIc	2

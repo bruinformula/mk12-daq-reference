@@ -1,6 +1,0 @@
-../Charging/Src/j_plug.c:14:6:HAL_TIM_IC_CaptureCallback	4
-../Charging/Src/j_plug.c:33:6:startPWM_Capture	1
-../Charging/Src/j_plug.c:38:6:stopPWM_Capture	1
-../Charging/Src/j_plug.c:43:6:isControlPilotTimedOut	1
-../Charging/Src/j_plug.c:47:10:readProximityPilot	4
-../Charging/Src/j_plug.c:61:10:readControlPilot	7
