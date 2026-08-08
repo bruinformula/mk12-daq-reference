@@ -1,0 +1,12 @@
+../Core/Src/app_freertos.c:99:6:MX_FREERTOS_Init	1
+../Core/Src/app_freertos.c:198:6:voltageFunction	2
+../Core/Src/app_freertos.c:222:6:tempFunction	2
+../Core/Src/app_freertos.c:246:6:safetyFunction	1
+../Core/Src/app_freertos.c:267:6:currFunction	1
+../Core/Src/app_freertos.c:286:6:dataloggingFunction	1
+../Core/Src/app_freertos.c:317:6:prchgFunction	2
+../Core/Src/app_freertos.c:339:6:currLimitFunction	2
+../Core/Src/app_freertos.c:361:6:balancingFunction	2
+../Core/Src/app_freertos.c:383:6:chargingFunction	2
+../Core/Src/app_freertos.c:405:6:socFunction	3
+../Core/Src/app_freertos.c:433:6:serialCmdFunction	1

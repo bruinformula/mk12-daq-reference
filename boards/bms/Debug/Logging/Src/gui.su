@@ -1,0 +1,15 @@
+../Logging/Src/gui.c:22:6:HAL_UARTEx_RxEventCallback	32	static,ignoring_inline_asm
+../Logging/Src/gui.c:38:6:return_to_gui_from_charging_mode	8	static
+../Logging/Src/gui.c:60:6:return_to_gui_from_balancing_mode	24	static
+../Logging/Src/gui.c:83:6:processGUI_Cmd	24	static
+../Logging/Src/gui.c:112:20:bms_state_to_string	16	static
+../Logging/Src/gui.c:126:20:charging_state_to_string	16	static
+../Logging/Src/gui.c:137:20:balance_state_to_string	16	static
+../Logging/Src/gui.c:148:20:precharge_state_to_string	16	static
+../Logging/Src/gui.c:158:20:control_pilot_state_to_string	16	static
+../Logging/Src/gui.c:167:20:proximity_pilot_state_to_string	16	static
+../Logging/Src/gui.c:177:12:append_json	24	static
+../Logging/Src/gui.c:197:12:append_json_scaled_int	32	static
+../Logging/Src/gui.c:211:12:append_scaled_matrix	32	static
+../Logging/Src/gui.c:225:5:build_bms_json	144	static
+../Logging/Src/gui.c:332:6:send_bms_json	16	static

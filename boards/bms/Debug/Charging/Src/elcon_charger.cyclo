@@ -1,0 +1,5 @@
+../Charging/Src/elcon_charger.c:12:6:configureChargeTxMsg	1
+../Charging/Src/elcon_charger.c:16:6:parseChargerBroadcast	2
+../Charging/Src/elcon_charger.c:25:6:sendChargerRequest	1
+../Charging/Src/elcon_charger.c:42:6:chargerFaultDetected	6
+../Charging/Src/elcon_charger.c:52:6:startingStateOffOnly	6

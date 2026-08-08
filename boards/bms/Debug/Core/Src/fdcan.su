@@ -1,0 +1,9 @@
+../Core/Src/fdcan.c:31:6:MX_FDCAN1_Init	8	static
+../Core/Src/fdcan.c:69:6:HAL_FDCAN_MspInit	128	static
+../Core/Src/fdcan.c:113:6:HAL_FDCAN_MspDeInit	16	static
+../Core/Src/fdcan.c:139:6:configureFilters	4	static
+../Core/Src/fdcan.c:155:6:startCAN_Tx_Rx	8	static
+../Core/Src/fdcan.c:162:6:configureFDCAN_TxMessage_STD	16	static
+../Core/Src/fdcan.c:174:6:configureFDCAN_TxMessage_EXTD	16	static
+../Core/Src/fdcan.c:190:6:HAL_FDCAN_RxFifo0Callback	16	static
+../Core/Src/fdcan.c:203:6:BMS_CAN_RxHandler	32	static,ignoring_inline_asm

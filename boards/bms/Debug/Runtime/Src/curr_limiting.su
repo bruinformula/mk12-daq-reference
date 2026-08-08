@@ -1,0 +1,5 @@
+../Runtime/Src/curr_limiting.c:15:14:interpolateCurve	48	static
+../Runtime/Src/curr_limiting.c:76:6:calculateDCL	16	static
+../Runtime/Src/curr_limiting.c:80:6:calculateCCL	16	static
+../Runtime/Src/curr_limiting.c:84:6:configureDCL_CCL_TxMsg	8	static
+../Runtime/Src/curr_limiting.c:88:6:sendDCL_CCL	8	static

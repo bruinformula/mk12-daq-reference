@@ -1,0 +1,5 @@
+../Runtime/Src/curr_limiting.c:15:14:interpolateCurve	5
+../Runtime/Src/curr_limiting.c:76:6:calculateDCL	1
+../Runtime/Src/curr_limiting.c:80:6:calculateCCL	1
+../Runtime/Src/curr_limiting.c:84:6:configureDCL_CCL_TxMsg	1
+../Runtime/Src/curr_limiting.c:88:6:sendDCL_CCL	2

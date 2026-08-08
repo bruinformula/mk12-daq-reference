@@ -1,0 +1,6 @@
+../Logging/Src/can_datalogging.c:18:6:configureVoltage_TxMsg	1
+../Logging/Src/can_datalogging.c:22:6:configureTemp_TxMsg	1
+../Logging/Src/can_datalogging.c:26:6:configureSoc_Curr_Pack_TxMsg	1
+../Logging/Src/can_datalogging.c:30:6:sendVoltage	1
+../Logging/Src/can_datalogging.c:45:6:sendTemp	1
+../Logging/Src/can_datalogging.c:60:6:sendSoc_Curr_Pack	1

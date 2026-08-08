@@ -1,0 +1,11 @@
+{
+  "files.associations": {
+    "stm32g4xx_hal.h": "c",
+    "adbms_main.h": "c",
+    "common.h": "c",
+    "adbms6830data.h": "c",
+    "mcuwrapper.h": "c",
+    "main.h": "c",
+    "vector": "c"
+  }
+}

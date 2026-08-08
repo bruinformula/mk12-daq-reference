@@ -1,0 +1,13 @@
+# STM32CubeIDE Build outputs
+Debug/
+Release/
+
+# Local IDE configuration settings
+.settings/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Local scratch files
+scratch_main_diff.txt

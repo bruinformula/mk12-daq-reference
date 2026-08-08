@@ -1,0 +1,15 @@
+../Core/Src/bms_state.c:12:6:determine_operating_state	3
+../Core/Src/bms_state.c:21:6:reset_operating_state	6
+../Core/Src/bms_state.c:43:6:wakeup_tasks	5
+../Core/Src/bms_state.c:66:6:change_baud_rate_500	1
+../Core/Src/bms_state.c:75:6:change_baud_rate_250	1
+../Core/Src/bms_state.c:86:6:enter_wait_for_gui_mode	1
+../Core/Src/bms_state.c:94:6:enter_precharge_mode	1
+../Core/Src/bms_state.c:100:6:enter_drive_mode	1
+../Core/Src/bms_state.c:107:6:enter_charging_mode	1
+../Core/Src/bms_state.c:120:6:enter_balancing_mode	2
+../Core/Src/bms_state.c:137:6:exit_wait_for_gui_mode	1
+../Core/Src/bms_state.c:141:6:exit_precharge_mode	1
+../Core/Src/bms_state.c:145:6:exit_drive_mode	1
+../Core/Src/bms_state.c:152:6:exit_charging_mode	1
+../Core/Src/bms_state.c:167:6:exit_balancing_mode	2

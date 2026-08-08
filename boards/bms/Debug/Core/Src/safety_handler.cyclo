@@ -1,0 +1,7 @@
+../Core/Src/safety_handler.c:13:6:configureShutdownLostTxMsg	1
+../Core/Src/safety_handler.c:17:6:service_shutdown_power_signal	4
+../Core/Src/safety_handler.c:46:6:apply_shutdown_power_state	6
+../Core/Src/safety_handler.c:76:6:BMS_SetFault	1
+../Core/Src/safety_handler.c:83:6:BMS_ClearFault	1
+../Core/Src/safety_handler.c:90:9:BMS_GetFaultRegister	1
+../Core/Src/safety_handler.c:99:6:BMS_CheckFaultRegister	2

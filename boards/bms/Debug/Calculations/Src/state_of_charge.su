@@ -1,0 +1,4 @@
+../Calculations/Src/state_of_charge.c:3:14:interpolate	32	static
+../Calculations/Src/state_of_charge.c:8:14:ocv_lookup_soc	40	static
+../Calculations/Src/state_of_charge.c:35:6:get_initial_soc	32	static
+../Calculations/Src/state_of_charge.c:63:6:coulomb_count	24	static
