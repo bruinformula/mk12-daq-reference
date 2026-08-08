@@ -31,4 +31,16 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>Drivers/CMSIS</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Drivers/CMSIS</locationURI>
+		</link>
+		<link>
+			<name>Drivers/STM32L5xx_HAL_Driver</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/Drivers/STM32L5xx_HAL_Driver</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>
