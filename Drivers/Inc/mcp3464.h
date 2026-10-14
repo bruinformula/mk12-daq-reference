@@ -1,7 +1,7 @@
 #ifndef INC_MCP3464_H_
 #define INC_MCP3464_H_
 
-#include "stm32l5xx_hal.h"
+#include "main.h"
 
 /* -----------------------------------------------------------------------
  * MCP3464 – 24-bit delta-sigma ADC, SPI interface
