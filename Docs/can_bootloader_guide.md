@@ -1,4 +1,4 @@
-# BFR Mk. 12 CAN Bootloader: Developer Guide
+# BFR Mk. 11 & Mk. 12 CAN Bootloader: Developer Guide
 
 Complete guide for Bruin Formula Racing engineers on how to flash the CAN bootloader to fresh boards and how to flash application firmware over the vehicle CAN bus using both **`bfr-cli`** and **`STM32CubeIDE`**.
 
@@ -6,24 +6,27 @@ Complete guide for Bruin Formula Racing engineers on how to flash the CAN bootlo
 
 ## 1. System Architecture Overview
 
-* **Microcontroller**: STM32U535CCT6 (ARM Cortex-M33, 256 KB Flash, 272 KB SRAM)
+* **Microcontrollers**:
+  * **Mk. 12 Boards**: STM32U535CCT6 (ARM Cortex-M33, 256 KB Flash [8 KB pages], 272 KB SRAM)
+  * **Mk. 11 Boards**: STM32L552CCT6 (ARM Cortex-M33, 256 KB Flash [2 KB pages, dual-bank], 256 KB SRAM)
 * **CAN Hardware**: Bosch M_CAN (FDCAN1)
   * **RX Pin**: `PB8` (Alternate Function AF9)
   * **TX Pin**: `PB9` (Alternate Function AF9)
-* **Status LED (D18)**: `PB7` (Active HIGH, drives base of `Q4` MMBT3904)
+* **Status LED (D18 on Mk. 12)**: `PB7` (Active HIGH, drives base of `Q4` MMBT3904)
   * **5 Hz Blink**: Idling in Bootloader Mode (waiting for commands)
   * **Rapid Toggle (20 Hz)**: Actively writing quad-words to flash
   * **OFF**: Running Application Firmware
+  * *Note: PB7 is safely disabled on Mk. 11 boards (`MCU_HAS_STATUS_LED=0`) where PB7 connects to the I2C temperature sensor bus.*
 * **Dual-Mode Protocol**:
   * **CAN-FD Mode**: 48 bytes payload per frame, 2 Mbps bit-rate switching (BRS) — flashes 224 KB in ~1.5 seconds.
   * **Classic CAN 2.0B Mode**: 96-byte streaming blocks with Block-ACK — flashes in ~4.5 seconds.
 
-### Memory Map
+### Memory Map (Unified across Mk. 11 & Mk. 12)
 
 | Partition | Start Address | End Address | Size | Erased Over CAN? | Purpose |
 | :--- | :--- | :--- | :--- | :---: | :--- |
-| **Bootloader** | `0x08000000` | `0x08007FFF` | 32 KB (Pages 0–3) | **NO (Protected)** | Permanent bootloader firmware |
-| **Application** | `0x08008000` | `0x0803FFFF` | 224 KB (Pages 4–31) | **YES** | Board user code (SDU, MDU, etc.) |
+| **Bootloader** | `0x08000000` | `0x08007FFF` | 32 KB | **NO (Protected)** | Permanent bootloader firmware |
+| **Application** | `0x08008000` | `0x0803FFFF` | 224 KB | **YES** | Board user code (SDU, MDU, etc.) |
 | **RAM Magic** | `0x20000000` | `0x20000003` | 4 Bytes | N/A | Bootloader entry token (`0xDEADBEEF`) |
 
 ---
@@ -43,22 +46,32 @@ graph LR
 ### Method A: Via Command Line (`bfr-cli`)
 
 1. Connect your ST-Link V2/V3 to the board SWD header (`SWDIO`, `SWCLK`, `GND`, `3V3`).
-2. Run the single `bfr` bootloader flash command:
+2. Run the `bfr` bootloader flash command for your board target:
    ```bash
-   bfr flash-bootloader
-   # or: bfr flash bootloader
+   # For Mk. 12 boards (STM32U535):
+   bfr flash-bootloader u5
+   # or simply: bfr flash-bootloader
+
+   # For Mk. 11 boards (STM32L552):
+   bfr flash-bootloader l5
+   # or: bfr flash bootloader-l5
    ```
    **What `bfr` does automatically:**
    * Locates `mk12-daq-reference/Bootloader`
-   * Compiles the fresh `bootloader.bin` using the native ARM GCC toolchain
+   * Compiles the corresponding binary (`bootloader_u5.bin` or `bootloader_l5.bin`) using the ARM GCC toolchain with target preprocessor defines (`-DSTM32U535xx` or `-DSTM32L552xx`)
    * Discovers your local `STM32_Programmer_CLI` installation
    * Flashes the binary directly to base address `0x08000000` with verification (`-v`) and system reset (`-rst`)
-3. **Verification**: Once flashed, the red status LED `D18` on `PB7` will immediately begin blinking at **5 Hz**. This confirms the bootloader is running and waiting for CAN commands.
+3. **Verification**: Once flashed:
+   * **Mk. 12**: The red status LED `D18` on `PB7` will immediately begin blinking at **5 Hz**. This confirms the bootloader is running and waiting for CAN commands.
+   * **Mk. 11**: Bootloader starts in listening mode (PB7 is not driven to protect onboard I2C sensors). Verify with `bfr can-scan`.
 
 > [!TIP]
 > You can also run the raw STM32CubeProgrammer CLI directly if preferred:
 > ```bash
-> STM32_Programmer_CLI -c port=SWD -w ~/mk12-daq-reference/Bootloader/build/bootloader.bin 0x08000000 -v -rst
+> # Mk. 12:
+> STM32_Programmer_CLI -c port=SWD -w ~/mk12-daq-reference/Bootloader/build/bootloader_u5.bin 0x08000000 -v -rst
+> # Mk. 11:
+> STM32_Programmer_CLI -c port=SWD -w ~/mk12-daq-reference/Bootloader/build/bootloader_l5.bin 0x08000000 -v -rst
 > ```
 
 ---
@@ -262,7 +275,9 @@ Whenever a board is on the test bench, **normal ST-Link debugging works without 
 
 ---
 
-## 6. CAN ID Reference Table (Mk. 12 DAQ Bus)
+## 6. CAN ID Reference Tables
+
+### Mk. 12 DAQ Bus (STM32U535)
 
 | Board Name | Key | Acronym | Target CAN ID (Host $\rightarrow$ Node) | Response CAN ID (Node $\rightarrow$ Host) | Board ID |
 | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -275,6 +290,17 @@ Whenever a board is on the test bench, **normal ST-Link debugging works without 
 | **Pneumatic Measurement** | `pmu` | `PMU` | `0x01A` | `0x01B` | `0x06` |
 | **Tractive System Measurement** | `tsmu` | `TSMU` | `0x01C` | `0x01D` | `0x07` |
 | **Strain Gauge Unit** | `sgu` | `SGU` | `0x01E` | `0x01F` | `0x08` |
+
+### Mk. 11 DAQ Bus (STM32L552)
+
+| Board Name | Key | Acronym | Target CAN ID (Host $\rightarrow$ Node) | Response CAN ID (Node $\rightarrow$ Host) | Board ID |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Global Broadcast** | `all` | `ALL` | `0x07F` | N/A | `0xFF` |
+| **Master Data Unit** | `mk11-mdu` | `MDU` | `0x020` | `0x021` | `0x11` |
+| **Tire System Pressure** | `mk11-tspmu` | `TSPMU` | `0x022` | `0x023` | `0x12` |
+| **Suspension Data Unit** | `mk11-sdu` | `SDU` | `0x024` | `0x025` | `0x13` |
+| **Spatial Monitoring Unit** | `mk11-smu` | `SMU` | `0x026` | `0x027` | `0x14` |
+| **Thermal & Sensor Hub** | `mk11-tshmu` | `TSHMU` | `0x028` | `0x029` | `0x15` |
 
 ---
 

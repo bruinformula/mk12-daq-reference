@@ -1,9 +1,9 @@
 ################################################################################
-# BFR STM32U535 DAQ CAN Bootloader Makefile
+# BFR Dual-Target DAQ CAN Bootloader Makefile (STM32U535 & STM32L552)
 # Bruin Formula Racing (UCLA Formula SAE)
 ################################################################################
 
-TARGET = bootloader
+MCU ?= STM32U535
 BUILD_DIR = build
 
 # Auto-detect ARM GNU Toolchain from STM32CubeIDE plugins or PATH
@@ -27,7 +27,20 @@ BIN = $(CP) -O binary -S
 
 # Target MCU Architecture Flags (Cortex-M33)
 CPU = -mcpu=cortex-m33
-MCU = $(CPU) -mthumb
+MCU_FLAGS = $(CPU) -mthumb
+
+# Normalize MCU selection
+ifeq ($(filter $(MCU),stm32l5 STM32L5 STM32L552 stm32l552 STM32L552xx l552 L552),$(MCU))
+  MCU_FAMILY = STM32L552xx
+  LDSCRIPT = STM32L552CCTX_FLASH_BOOTLOADER.ld
+  ASM_SOURCES = Core/Src/startup_stm32l552xx.s
+  TARGET = bootloader_l5
+else
+  MCU_FAMILY = STM32U535xx
+  LDSCRIPT = STM32U535CCTX_FLASH_BOOTLOADER.ld
+  ASM_SOURCES = Core/Src/startup_stm32u535xx.s
+  TARGET = bootloader_u5
+endif
 
 # C sources
 C_SOURCES = \
@@ -39,43 +52,40 @@ Core/Src/crc32.c \
 Core/Src/led.c \
 Core/Src/syscalls.c
 
-# Assembly sources
-ASM_SOURCES = \
-Core/Src/startup_stm32u535xx.s
-
 # C includes
 C_INCLUDES = \
 -ICore/Inc
 
 # Compile flags
-CFLAGS = $(MCU) $(C_INCLUDES) -Os -Wall -fdata-sections -ffunction-sections -fno-common
+CFLAGS = $(MCU_FLAGS) $(C_INCLUDES) -D$(MCU_FAMILY) -Os -Wall -fdata-sections -ffunction-sections -fno-common
 CFLAGS += -g -gdwarf-2
-
-# Linker script
-LDSCRIPT = STM32U535CCTX_FLASH_BOOTLOADER.ld
 
 # Libraries
 LIBS = -lc -lm -lnosys
 LIBDIR =
-LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
+LDFLAGS = $(MCU_FLAGS) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
 
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
+	@cp -f $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/bootloader.elf
+	@cp -f $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/bootloader.hex
+	@cp -f $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/bootloader.bin
+	@echo "  Built $(TARGET) ($(MCU_FAMILY)) successfully."
 
-OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
+OBJECTS = $(addprefix $(BUILD_DIR)/$(TARGET)_,$(notdir $(C_SOURCES:.c=.o)))
 vpath %.c $(sort $(dir $(C_SOURCES)))
-OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
+OBJECTS += $(addprefix $(BUILD_DIR)/$(TARGET)_,$(notdir $(ASM_SOURCES:.s=.o)))
 vpath %.s $(sort $(dir $(ASM_SOURCES)))
 
-$(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR)
-	@echo "  CC    $<"
+$(BUILD_DIR)/$(TARGET)_%.o: %.c Makefile | $(BUILD_DIR)
+	@echo "  CC [$(MCU_FAMILY)] $<"
 	@$(CC) -c $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
-	@echo "  AS    $<"
+$(BUILD_DIR)/$(TARGET)_%.o: %.s Makefile | $(BUILD_DIR)
+	@echo "  AS [$(MCU_FAMILY)] $<"
 	@$(AS) -c $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
-	@echo "  LD    $@"
+$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile $(LDSCRIPT)
+	@echo "  LD [$(MCU_FAMILY)] $@"
 	@$(CC) $(OBJECTS) $(LDFLAGS) -o $@
 	@$(SZ) $@
 
@@ -90,8 +100,14 @@ $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 $(BUILD_DIR):
 	@mkdir -p $@
 
+all-targets:
+	@$(MAKE) clean
+	@$(MAKE) MCU=STM32U535
+	@$(MAKE) MCU=STM32L552
+	@echo "All targets (STM32U535 & STM32L552) built successfully."
+
 clean:
 	@rm -rf $(BUILD_DIR)
 	@echo "Cleaned build artifacts."
 
-.PHONY: all clean
+.PHONY: all clean all-targets

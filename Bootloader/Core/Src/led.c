@@ -1,10 +1,13 @@
 /**
  * @file    led.c
- * @brief   BFR Status LED Driver Implementation (PB7)
+ * @brief   BFR Status LED Driver Implementation (PB7 on Mk12, Safe Stub on Mk11)
  * @author  Bruin Formula Racing (UCLA Formula SAE)
  */
 
 #include "led.h"
+#include "main.h"
+
+#if defined(MCU_HAS_STATUS_LED)
 
 /* Peripheral Base Addresses for STM32U5 */
 #define RCC_BASE_ADDR           0x46020C00UL
@@ -68,3 +71,13 @@ void LED_Toggle(void)
 {
     GPIOB_ODR ^= (1UL << 7);
 }
+
+#else
+
+/* Safe stubs for targets without dedicated PB7 LED (e.g. STM32L552 / Mk11) */
+void LED_Init(void) {}
+void LED_On(void) {}
+void LED_Off(void) {}
+void LED_Toggle(void) {}
+
+#endif

@@ -9,6 +9,9 @@
 #include "fdcan.h"
 #include "led.h"
 
+/* BFR CAN Bootloader Identification Signature in Flash */
+volatile const char BFR_BOOTLOADER_SIGNATURE[16] __attribute__((used)) = "BFR_BOOTLOADER";
+
 void Error_Handler(void)
 {
     /* Rapid error strobe on PB7 LED */
@@ -22,6 +25,10 @@ void Error_Handler(void)
 
 int main(void)
 {
+    if (BFR_BOOTLOADER_SIGNATURE[0] != 'B') {
+        Error_Handler();
+    }
+
     /* 1. Inspect SRAM Magic Token */
     volatile uint32_t *magic_reg = (volatile uint32_t *)BOOTLOADER_MAGIC_ADDR;
     bool force_bootloader = (*magic_reg == BOOTLOADER_MAGIC_KEY);

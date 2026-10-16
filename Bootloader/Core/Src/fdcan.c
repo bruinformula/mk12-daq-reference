@@ -1,6 +1,6 @@
 /**
  * @file    fdcan.c
- * @brief   STM32U5 Bosch M_CAN / FDCAN1 Driver Implementation (PB8 RX, PB9 TX)
+ * @brief   Bosch M_CAN / FDCAN1 Driver Implementation (PB8 RX, PB9 TX) for STM32U5 & STM32L5
  * @author  Bruin Formula Racing (UCLA Formula SAE)
  */
 
@@ -10,9 +10,15 @@
 /* Peripheral & Register Base Addresses                                      */
 /* ========================================================================= */
 
+#if defined(STM32L552xx)
+#define RCC_BASE_ADDR               0x40021000UL
+#define RCC_AHB2ENR                 (*(volatile uint32_t *)(RCC_BASE_ADDR + 0x4CUL))
+#define RCC_APB1ENR2                (*(volatile uint32_t *)(RCC_BASE_ADDR + 0x5CUL))
+#else
 #define RCC_BASE_ADDR               0x46020C00UL
 #define RCC_AHB2ENR1                (*(volatile uint32_t *)(RCC_BASE_ADDR + 0x8CUL))
 #define RCC_APB1ENR1                (*(volatile uint32_t *)(RCC_BASE_ADDR + 0x9CUL))
+#endif
 
 #define GPIOB_BASE_ADDR             0x42020400UL
 #define GPIOB_MODER                 (*(volatile uint32_t *)(GPIOB_BASE_ADDR + 0x00UL))
@@ -62,8 +68,13 @@ static uint8_t BytesToDLC(uint8_t bytes)
 bool FDCAN_Driver_Init(void)
 {
     /* 1. Enable Clocks for GPIOB and FDCAN1 */
+#if defined(STM32L552xx)
+    RCC_AHB2ENR  |= (1UL << 1);  /* GPIOBEN */
+    RCC_APB1ENR2 |= (1UL << 9);  /* FDCAN1EN (bit 9 of APB1ENR2) */
+#else
     RCC_AHB2ENR1 |= (1UL << 1);  /* GPIOBEN */
-    RCC_APB1ENR1 |= (1UL << 25); /* FDCAN1EN */
+    RCC_APB1ENR1 |= (1UL << 25); /* FDCAN1EN (bit 25 of APB1ENR1) */
+#endif
 
     __asm volatile ("nop\n nop\n nop\n nop");
 
@@ -98,21 +109,26 @@ bool FDCAN_Driver_Init(void)
     FDCAN_DBTP = ((0UL << 16) | (1UL << 4)  | (4UL  << 8) | 1UL);
 
     /* 5. Configure Global Filter: Accept Non-Matching Standard Frames into RX FIFO 0 */
-    FDCAN_GFC = 0; /* ANFS=0 (Accept in Rx FIFO 0), ANFE=0 */
+    FDCAN_GFC = 0; /* Accept non-matching standard & extended frames into RX FIFO 0 */
 
-    /* 6. Configure RX FIFO 0: 3 Elements of 64-byte payload */
-    /* FDCAN1_MSG_RAM_BASE: RX FIFO 0 start at offset 0, 3 elements */
-    FDCAN_RXF0C = ((18UL << 16) | 3UL); /* F0S = 3 elements, 64-byte data */
+    /* 6. Configure RX FIFO 0:
+     * - Start address: FDCAN1_MSG_RAM_BASE
+     * - Size: 3 elements
+     * - Watermark: 0 */
+    FDCAN_RXF0C = ((3UL << 16) | 0UL);
 
-    /* 7. Configure TX Buffers: 3 Elements of 64-byte payload */
-    FDCAN_TXBC = ((18UL << 16) | (3UL << 24)); /* Dedicated TX FIFO */
+    /* 7. Configure TX Buffer:
+     * - Start address: FDCAN1_MSG_RAM_BASE + 0x100
+     * - Dedicated TX buffers: 3
+     * - FIFO/Queue: 0 */
+    FDCAN_TXBC = ((3UL << 24) | (0x40UL << 2));
 
     return true;
 }
 
 bool FDCAN_Driver_Start(void)
 {
-    /* Exit initialization mode to connect to bus */
+    /* Leave Initialization mode to participate in CAN traffic */
     FDCAN_CCCR &= ~FDCAN_CCCR_INIT;
     while ((FDCAN_CCCR & FDCAN_CCCR_INIT) != 0);
 
@@ -121,6 +137,7 @@ bool FDCAN_Driver_Start(void)
 
 void FDCAN_Driver_Stop(void)
 {
+    /* Enter Init mode to cleanly freeze peripheral before jumping to application */
     FDCAN_CCCR |= FDCAN_CCCR_INIT;
     while ((FDCAN_CCCR & FDCAN_CCCR_INIT) == 0);
 }
@@ -129,41 +146,33 @@ bool FDCAN_Driver_Receive(FDCAN_Message_t *msg)
 {
     if (msg == NULL) return false;
 
-    /* Check RX FIFO 0 Fill Level (F0FL bits [6:0]) */
-    uint32_t f0s = FDCAN_RXF0S;
-    uint32_t fill_level = f0s & 0x7FUL;
+    /* Check if RX FIFO 0 has at least one message */
+    uint32_t rxf0s = FDCAN_RXF0S;
+    uint32_t fill_level = rxf0s & 0x7FUL;
     if (fill_level == 0) {
         return false;
     }
 
-    /* Get Get Index (F0GI bits [13:8]) */
-    uint32_t get_index = (f0s >> 8) & 0x03UL;
+    uint32_t get_index = (rxf0s >> 8) & 0x3UL;
+    volatile uint32_t *elem = (volatile uint32_t *)(FDCAN1_MSG_RAM_BASE + (get_index * 18 * 4));
 
-    /* Each 64-byte Rx element in Message RAM is 18 words (72 bytes):
-     * Header = 2 words (8 bytes), Data = 16 words (64 bytes) */
-    volatile uint32_t *element_addr = (volatile uint32_t *)(FDCAN1_MSG_RAM_BASE + (get_index * 18UL * 4UL));
+    /* Parse Header */
+    uint32_t w0 = elem[0];
+    uint32_t w1 = elem[1];
 
-    uint32_t r0 = element_addr[0];
-    uint32_t r1 = element_addr[1];
+    msg->id = (w0 >> 18) & 0x7FFUL; /* Standard 11-bit ID */
+    msg->is_fd = ((w1 & (1UL << 21)) != 0);
 
-    /* Extract Standard ID (Bits 28:18) */
-    msg->id = (r0 >> 18) & 0x7FFUL;
-
-    /* Extract FD Format & BRS flags */
-    msg->is_fd = (r1 & (1UL << 21)) != 0;
-    msg->brs   = (r1 & (1UL << 20)) != 0;
-
-    /* Extract DLC */
-    uint8_t dlc = (r1 >> 16) & 0x0FUL;
+    uint8_t dlc = (w1 >> 16) & 0x0FUL;
     msg->len = s_dlc_to_bytes[dlc];
 
-    /* Copy payload */
-    volatile uint8_t *data_src = (volatile uint8_t *)(&element_addr[2]);
+    /* Copy payload words into data array */
+    volatile uint8_t *payload_bytes = (volatile uint8_t *)&elem[2];
     for (uint8_t i = 0; i < msg->len; i++) {
-        msg->data[i] = data_src[i];
+        msg->data[i] = payload_bytes[i];
     }
 
-    /* Acknowledge message read in RX FIFO 0 */
+    /* Acknowledge read in RX FIFO 0 */
     FDCAN_RXF0A = get_index;
 
     return true;
@@ -171,46 +180,42 @@ bool FDCAN_Driver_Receive(FDCAN_Message_t *msg)
 
 bool FDCAN_Driver_Transmit(const FDCAN_Message_t *msg)
 {
-    if (msg == NULL) return false;
+    if (msg == NULL || msg->len > 64U) return false;
 
-    /* Check TX FIFO Free Level (TFFL bits [2:0]) */
+    /* Check if TX FIFO/Queue has a free buffer */
     uint32_t tx_fqs = FDCAN_TXFQS;
     if ((tx_fqs & (1UL << 21)) != 0) {
-        /* TX FIFO Full */
-        return false;
+        return false; /* TX FIFO full */
     }
 
-    /* Get Put Index (TFQPI bits [20:16]) */
-    uint32_t put_index = (tx_fqs >> 16) & 0x03UL;
+    uint32_t put_index = (tx_fqs >> 16) & 0x1FUL;
+    uint32_t buf_offset = 0x100UL + (put_index * 18 * 4);
+    volatile uint32_t *elem = (volatile uint32_t *)(FDCAN1_MSG_RAM_BASE + buf_offset);
 
-    /* Dedicated Tx Buffer element address (following Rx FIFO 0 in Message RAM) */
-    /* Rx FIFO 0 has 3 elements * 18 words = 54 words */
-    volatile uint32_t *tx_element = (volatile uint32_t *)(FDCAN1_MSG_RAM_BASE + (54UL * 4UL) + (put_index * 18UL * 4UL));
+    /* Construct T0: Standard 11-bit ID */
+    elem[0] = ((msg->id & 0x7FFUL) << 18);
 
-    /* Build T0 header: Standard ID in bits [28:18] */
-    uint32_t t0 = ((msg->id & 0x7FFUL) << 18);
-
-    /* Build T1 header: DLC, FDF, BRS */
+    /* Construct T1: DLC, FDF (CAN-FD format), BRS (Bit Rate Switch) */
     uint8_t dlc = BytesToDLC(msg->len);
     uint32_t t1 = ((uint32_t)dlc << 16);
     if (msg->is_fd) {
         t1 |= (1UL << 21); /* FDF */
-        if (msg->brs) {
-            t1 |= (1UL << 20); /* BRS */
-        }
+        t1 |= (1UL << 20); /* BRS */
     }
+    elem[1] = t1;
 
-    tx_element[0] = t0;
-    tx_element[1] = t1;
-
-    /* Write data words */
-    volatile uint8_t *tx_data_dst = (volatile uint8_t *)(&tx_element[2]);
+    /* Copy payload */
+    volatile uint8_t *payload_bytes = (volatile uint8_t *)&elem[2];
     for (uint8_t i = 0; i < msg->len; i++) {
-        tx_data_dst[i] = msg->data[i];
+        payload_bytes[i] = msg->data[i];
     }
 
     /* Request transmission */
     FDCAN_TXBAR = (1UL << put_index);
 
-    return true;
+    /* Wait for transmission completion or timeout */
+    uint32_t timeout = 500000;
+    while ((FDCAN_TXBAR & (1UL << put_index)) != 0 && --timeout > 0);
+
+    return (timeout > 0);
 }

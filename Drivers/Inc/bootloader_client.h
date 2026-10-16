@@ -97,6 +97,31 @@ typedef enum {
 #define CAN_ID_RESP_SGU                 0x01FU
 
 /* ========================================================================= */
+/* Board CAN ID Mapping (Mk. 11 DAQ Bus)                                    */
+/* ========================================================================= */
+
+#define BOARD_ID_MK11_MDU               0x11
+#define BOARD_ID_MK11_TSPMU             0x12
+#define BOARD_ID_MK11_SDU               0x13
+#define BOARD_ID_MK11_SMU               0x14
+#define BOARD_ID_MK11_TSHMU             0x15
+
+#define CAN_ID_TARGET_MK11_MDU          0x020U
+#define CAN_ID_RESP_MK11_MDU            0x021U
+
+#define CAN_ID_TARGET_MK11_TSPMU        0x022U
+#define CAN_ID_RESP_MK11_TSPMU          0x023U
+
+#define CAN_ID_TARGET_MK11_SDU          0x024U
+#define CAN_ID_RESP_MK11_SDU            0x025U
+
+#define CAN_ID_TARGET_MK11_SMU          0x026U
+#define CAN_ID_RESP_MK11_SMU            0x027U
+
+#define CAN_ID_TARGET_MK11_TSHMU        0x028U
+#define CAN_ID_RESP_MK11_TSHMU          0x029U
+
+/* ========================================================================= */
 /* Function Prototypes                                                       */
 /* ========================================================================= */
 

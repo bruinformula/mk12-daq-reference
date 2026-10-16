@@ -107,8 +107,14 @@ bool BootloaderClient_ProcessFDCAN(FDCAN_HandleTypeDef *hfdcan,
 
     uint32_t rx_id = rx_header->Identifier;
     /* Convert DLC code to byte length (up to 8 bytes for command frames) */
-    uint8_t rx_len = (rx_header->DataLength >> 16);
-    if (rx_len == 0) {
+#if defined(STM32L552xx) || defined(STM32L562xx)
+    /* STM32L5 HAL: DataLength is unshifted (0..8) */
+    uint8_t rx_len = (uint8_t)rx_header->DataLength;
+#else
+    /* STM32U5 HAL: DataLength is shifted (bits 16..19) */
+    uint8_t rx_len = (uint8_t)(rx_header->DataLength >> 16);
+#endif
+    if (rx_len == 0 || rx_len > 8) {
         rx_len = 8; /* Fallback safe length */
     }
 
@@ -131,7 +137,11 @@ bool BootloaderClient_ProcessFDCAN(FDCAN_HandleTypeDef *hfdcan,
         tx_header.Identifier = reply_id;
         tx_header.IdType = FDCAN_STANDARD_ID;
         tx_header.TxFrameType = FDCAN_DATA_FRAME;
-        tx_header.DataLength = (reply_len <= 8) ? (reply_len << 16) : FDCAN_DLC_BYTES_8;
+#if defined(STM32L552xx) || defined(STM32L562xx)
+        tx_header.DataLength = (reply_len <= 8) ? (uint32_t)reply_len : FDCAN_DLC_BYTES_8;
+#else
+        tx_header.DataLength = (reply_len <= 8) ? ((uint32_t)reply_len << 16) : FDCAN_DLC_BYTES_8;
+#endif
         tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
         tx_header.BitRateSwitch = FDCAN_BRS_OFF;
         tx_header.FDFormat = FDCAN_CLASSIC_CAN;
