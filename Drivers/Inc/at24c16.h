@@ -25,7 +25,7 @@
 
 
 #include <stdint.h>
-#include "stm32l5xx_hal.h"  // For I2C_HandleTypeDef
+#include "main.h"  // For I2C_HandleTypeDef
 
 typedef uint8_t ReturnType;
 #define PASS (ReturnType)1
