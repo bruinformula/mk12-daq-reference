@@ -146,7 +146,7 @@ CAN IDs use a functional addressing block reserving IDs `0x700` through `0x7FF` 
 | **EXP 1..4** | Future DAQ Expansions | Additional aero/tire temperature nodes | `0x58..0x6C`| `0x758+` | `0x7D8+` |
 
 ### Board Identification Strategy
-- **Universal Binary via EEPROM**: The boards incorporate an on-board [AT24C16](file:///Users/larry/mk12-daq-reference/Drivers/Inc/at24c16.h) I2C EEPROM. The board's assigned Node ID byte (e.g. `0x20` for SDU) is written once to EEPROM address `0x0000` during board bringup.
+- **Universal Binary via EEPROM**: The boards incorporate an on-board [AT24C16](../../../Drivers/Inc/at24c16.h) I2C EEPROM. The board's assigned Node ID byte (e.g. `0x20` for SDU) is written once to EEPROM address `0x0000` during board bringup.
 - At power-up, the bootloader reads byte `0x0000` from the EEPROM. **Result: You only compile and maintain ONE universal bootloader `.bin` for all 8+ boards.**
 
 ---
@@ -360,7 +360,7 @@ When an engineer adds `mk12-daq-reference` as a git submodule to their board pro
 
 ## 8. Host Tooling: BFR Firmware CLI (`bfr-cli`) Integration
 
-Rather than requiring engineers to run a separate, disconnected Python script, CAN flashing will be integrated directly into the team's official **[`bfr`](file:///Users/larry/bfr-cli/bfr)** command-line tool ([`bfr-cli`](file:///Users/larry/bfr-cli)).
+Rather than requiring engineers to run a separate, disconnected Python script, CAN flashing will be integrated directly into the team's official **`bfr`** command-line tool (`bfr-cli`).
 
 ```mermaid
 graph LR
@@ -411,10 +411,10 @@ graph LR
 With the transition from STM32L5 to STM32U5, the reference repository (`mk12-daq-reference`) should be adapted to maintain full compatibility:
 
 1. **Header Abstraction**:
-   - [`Drivers/Inc/mcp3464.h:L4`](file:///Users/larry/mk12-daq-reference/Drivers/Inc/mcp3464.h#L4) and [`Drivers/Inc/at24c16.h:L28`](file:///Users/larry/mk12-daq-reference/Drivers/Inc/at24c16.h#L28) currently include `"stm32l5xx_hal.h"`.
+   - [`Drivers/Inc/mcp3464.h:L4`](../../../Drivers/Inc/mcp3464.h#L4) and [`Drivers/Inc/at24c16.h:L28`](../../../Drivers/Inc/at24c16.h#L28) currently include `"stm32l5xx_hal.h"`.
    - Update both to `#include "main.h"`, making them automatically adapt to `stm32u5xx_hal.h` on STM32U5 projects.
 2. **Handle Injection**:
-   - Update [`Drivers/Src/mlx90614.c`](file:///Users/larry/mk12-daq-reference/Drivers/Src/mlx90614.c) and [`Drivers/Src/sh1106.c`](file:///Users/larry/mk12-daq-reference/Drivers/Src/sh1106.c) to take `I2C_HandleTypeDef*` in their init functions rather than hardcoding `hi2c4` and `hi2c2`.
+   - Update [`Drivers/Src/mlx90614.c`](../../../Drivers/Src/mlx90614.c) and [`Drivers/Src/sh1106.c`](../../../Drivers/Src/sh1106.c) to take `I2C_HandleTypeDef*` in their init functions rather than hardcoding `hi2c4` and `hi2c2`.
 
 ---
 

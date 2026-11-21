@@ -155,8 +155,8 @@ void BootloaderClient_EnterBootloader(void);
 
 #if defined(HAL_FDCAN_MODULE_ENABLED)
 /**
- * @brief Convenience hook for STM32 FDCAN (STM32U5, H7, G4).
- *        Call this inside HAL_FDCAN_RxFifo0Callback().
+ * @brief Convenience hook for STM32 FDCAN (STM32U5, L5, H7, G4).
+ *        Safe to call inside HAL_FDCAN_RxFifo0Callback() (ISR-safe, no HAL_Delay).
  * @param hfdcan    Pointer to FDCAN handle
  * @param rx_header Pointer to received FDCAN header
  * @param rx_data   Pointer to received data payload
@@ -170,7 +170,7 @@ bool BootloaderClient_ProcessFDCAN(FDCAN_HandleTypeDef *hfdcan,
 #if defined(HAL_CAN_MODULE_ENABLED)
 /**
  * @brief Convenience hook for STM32 Classic bxCAN (STM32F4, F1, L4).
- *        Call this inside HAL_CAN_RxFifo0MsgPendingCallback().
+ *        Safe to call inside HAL_CAN_RxFifo0MsgPendingCallback() (ISR-safe, no HAL_Delay).
  * @param hcan      Pointer to CAN handle
  * @param rx_header Pointer to received CAN header
  * @param rx_data   Pointer to received data payload

@@ -93,18 +93,24 @@ graph LR
 
 To allow an application (e.g. SDU, MDU, SMU) to coexist with the bootloader, three small changes are required in the board's project repository.
 
-### Step 3.1: Linker Script Flash Origin (`0x08008000`)
+### Step 3.1: Linker Script Flash Origin (`0x08008000`) & RAM Magic Reservation
 
-Open the board project's linker script (e.g. `STM32U535xxxx_FLASH.ld`):
+Open the board project's linker script (e.g. `STM32U535xxxx_FLASH.ld` or `STM32L552xxxx_FLASH.ld`):
 
 ```diff
  MEMORY
  {
-   RAM    (xrw) : ORIGIN = 0x20000000, LENGTH = 272K
+-  RAM    (xrw) : ORIGIN = 0x20000000, LENGTH = 272K
++  RAM    (xrw) : ORIGIN = 0x20000010, LENGTH = 272K - 16
 -  FLASH  (rx)  : ORIGIN = 0x08000000, LENGTH = 256K
 +  FLASH  (rx)  : ORIGIN = 0x08008000, LENGTH = 224K
  }
 ```
+
+*(For STM32L552 boards with 256 KB SRAM, use `RAM (xrw) : ORIGIN = 0x20000010, LENGTH = 256K - 16`.)*
+
+> [!IMPORTANT]
+> **Reserve `0x20000000`–`0x2000000F` in Application RAM:** Set `RAM ORIGIN = 0x20000010` (and subtract `16` from `LENGTH`) so your application's `.data`/`.bss` sections and startup RAM zeroing do not collide with `BOOTLOADER_MAGIC_ADDR` (`0x20000000`, where `BootloaderClient_EnterBootloader()` writes `0xDEADBEEF` before `NVIC_SystemReset()`). Keep `_estack = ORIGIN(RAM) + LENGTH(RAM);` unchanged so the top of stack stays 8-byte aligned.
 
 ### Step 3.2: Relocate Vector Table (VTOR)
 
@@ -232,7 +238,7 @@ You can configure STM32CubeIDE so developers can flash over CAN with a single cl
 2. Double-click **Program** on the left to create a new configuration.
 3. Configure the **Main** tab:
    * **Name**: `BFR CAN Flash (${project_name})`
-   * **Location**: `/Users/larry/bfr-cli/bfr` (or path to your `bfr` executable)
+   * **Location**: `<path-to-bfr-cli>/bfr` (or `bfr` if installed on your `PATH`)
    * **Working Directory**: `${project_loc}`
    * **Arguments**:
      ```text
@@ -257,7 +263,7 @@ If you want every successful build in STM32CubeIDE to automatically prompt or tr
 3. In the **Post-build steps** box:
    * **Command**:
      ```bash
-     /Users/larry/bfr-cli/bfr can-flash ${ProjName} "${BuildArtifactFileName}"
+     <path-to-bfr-cli>/bfr can-flash ${ProjName} "${BuildArtifactFileName}"
      ```
    * **Description**: `Flashing over CAN bus via bfr-cli`
 4. Click **Apply and Close**.

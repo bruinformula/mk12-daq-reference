@@ -7,6 +7,9 @@
 #include "bootloader_client.h"
 #include <string.h>
 
+/* Bounded polling iterations for ISR-safe TX completion before NVIC_SystemReset() */
+#define BOOTLOADER_CLIENT_TX_WAIT_ITERS 500000U
+
 static uint8_t  s_board_id        = 0;
 static uint32_t s_target_can_id    = 0;
 static uint32_t s_response_can_id  = 0;
@@ -105,17 +108,21 @@ bool BootloaderClient_ProcessFDCAN(FDCAN_HandleTypeDef *hfdcan,
         return false;
     }
 
+    if (rx_header->IdType != FDCAN_STANDARD_ID || rx_header->RxFrameType != FDCAN_DATA_FRAME) {
+        return false;
+    }
+
     uint32_t rx_id = rx_header->Identifier;
-    /* Convert DLC code to byte length (up to 8 bytes for command frames) */
-#if defined(STM32L552xx) || defined(STM32L562xx)
-    /* STM32L5 HAL: DataLength is unshifted (0..8) */
-    uint8_t rx_len = (uint8_t)rx_header->DataLength;
-#else
-    /* STM32U5 HAL: DataLength is shifted (bits 16..19) */
-    uint8_t rx_len = (uint8_t)(rx_header->DataLength >> 16);
-#endif
-    if (rx_len == 0 || rx_len > 8) {
-        rx_len = 8; /* Fallback safe length */
+    /*
+     * Convert DLC code to byte length (up to 8 bytes for command frames).
+     * STM32L5/H7 HAL stores unshifted DLC (0..15); STM32U5/G4 HAL stores it
+     * shifted in bits 16..19 (FDCAN_DLC_BYTES_8 == 0x00080000U).
+     */
+    uint8_t rx_len = (FDCAN_DLC_BYTES_8 > 0xFFU)
+        ? (uint8_t)((rx_header->DataLength >> 16) & 0x0FU)
+        : (uint8_t)(rx_header->DataLength & 0x0FU);
+    if (rx_len > 8U) {
+        rx_len = 8U; /* Command frames only inspect up to 8 bytes */
     }
 
     uint8_t reply_data[8] = {0};
@@ -131,29 +138,35 @@ bool BootloaderClient_ProcessFDCAN(FDCAN_HandleTypeDef *hfdcan,
     }
 
     /* Send response frame */
-    if (reply_len > 0) {
+    HAL_StatusTypeDef tx_status = HAL_ERROR;
+    if (reply_len > 0U) {
         FDCAN_TxHeaderTypeDef tx_header;
         memset(&tx_header, 0, sizeof(tx_header));
         tx_header.Identifier = reply_id;
         tx_header.IdType = FDCAN_STANDARD_ID;
         tx_header.TxFrameType = FDCAN_DATA_FRAME;
-#if defined(STM32L552xx) || defined(STM32L562xx)
-        tx_header.DataLength = (reply_len <= 8) ? (uint32_t)reply_len : FDCAN_DLC_BYTES_8;
-#else
-        tx_header.DataLength = (reply_len <= 8) ? ((uint32_t)reply_len << 16) : FDCAN_DLC_BYTES_8;
-#endif
+        uint32_t dlc = (reply_len <= 8U) ? (uint32_t)reply_len : 8U;
+        tx_header.DataLength = (FDCAN_DLC_BYTES_8 > 0xFFU) ? (dlc << 16) : dlc;
         tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
         tx_header.BitRateSwitch = FDCAN_BRS_OFF;
         tx_header.FDFormat = FDCAN_CLASSIC_CAN;
         tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
         tx_header.MessageMarker = 0;
 
-        HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &tx_header, reply_data);
+        tx_status = HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &tx_header, reply_data);
     }
 
     if (trigger_reboot) {
-        /* Allow brief 10ms for CAN frame to transmit before resetting MCU */
-        HAL_Delay(10);
+        /*
+         * ISR-safe bounded wait for TX completion before resetting MCU.
+         * HAL_Delay() deadlocks if CAN RX IRQ priority <= SysTick priority.
+         */
+        if (tx_status == HAL_OK) {
+            uint32_t timeout = BOOTLOADER_CLIENT_TX_WAIT_ITERS;
+            while ((hfdcan->Instance->TXBRP != 0U) && (timeout > 0U)) {
+                timeout--;
+            }
+        }
         BootloaderClient_EnterBootloader();
     }
 
@@ -170,8 +183,15 @@ bool BootloaderClient_ProcessClassicCAN(CAN_HandleTypeDef *hcan,
         return false;
     }
 
-    uint32_t rx_id = (rx_header->IDE == CAN_ID_STD) ? rx_header->StdId : rx_header->ExtId;
-    uint8_t rx_len = rx_header->DLC;
+    if (rx_header->IDE != CAN_ID_STD || rx_header->RTR != CAN_RTR_DATA) {
+        return false;
+    }
+
+    uint32_t rx_id = rx_header->StdId;
+    uint8_t rx_len = (uint8_t)rx_header->DLC;
+    if (rx_len > 8U) {
+        rx_len = 8U;
+    }
 
     uint8_t reply_data[8] = {0};
     uint8_t reply_len = 0;
@@ -185,20 +205,30 @@ bool BootloaderClient_ProcessClassicCAN(CAN_HandleTypeDef *hcan,
         return false;
     }
 
-    if (reply_len > 0) {
+    HAL_StatusTypeDef tx_status = HAL_ERROR;
+    uint32_t tx_mailbox = 0U;
+    if (reply_len > 0U) {
         CAN_TxHeaderTypeDef tx_header;
-        uint32_t tx_mailbox;
         memset(&tx_header, 0, sizeof(tx_header));
         tx_header.StdId = reply_id;
         tx_header.IDE = CAN_ID_STD;
         tx_header.RTR = CAN_RTR_DATA;
         tx_header.DLC = reply_len;
 
-        HAL_CAN_AddTxMessage(hcan, &tx_header, reply_data, &tx_mailbox);
+        tx_status = HAL_CAN_AddTxMessage(hcan, &tx_header, reply_data, &tx_mailbox);
     }
 
     if (trigger_reboot) {
-        HAL_Delay(10);
+        /*
+         * ISR-safe bounded wait for TX completion before resetting MCU.
+         * HAL_Delay() deadlocks if CAN RX IRQ priority <= SysTick priority.
+         */
+        if (tx_status == HAL_OK) {
+            uint32_t timeout = BOOTLOADER_CLIENT_TX_WAIT_ITERS;
+            while ((HAL_CAN_IsTxMessagePending(hcan, tx_mailbox) != 0U) && (timeout > 0U)) {
+                timeout--;
+            }
+        }
         BootloaderClient_EnterBootloader();
     }
 
