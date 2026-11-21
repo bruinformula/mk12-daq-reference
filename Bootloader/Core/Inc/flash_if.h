@@ -19,10 +19,6 @@ extern "C" {
 #define FLASH_QUADWORD_SIZE         16UL /* 128-bit quad-word write granularity */
 #endif
 
-#ifndef QUADWORD_SIZE
-#define QUADWORD_SIZE               FLASH_QUADWORD_SIZE
-#endif
-
 typedef enum {
     FLASH_STATUS_OK = 0,
     FLASH_STATUS_ERROR,
