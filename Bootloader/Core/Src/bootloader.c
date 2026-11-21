@@ -124,6 +124,14 @@ bool Bootloader_ProcessMessage(uint32_t rx_id, const uint8_t *rx_data, uint8_t r
     }
 
     uint8_t cmd = rx_data[0];
+
+    /* Broadcast CAN ID is restricted to discovery and bootloader-entry commands only */
+    if (rx_id == BROADCAST_CAN_ID &&
+        cmd != CMD_PING &&
+        cmd != CMD_ENTER_BOOTLOADER) {
+        return false;
+    }
+
     *tx_id = RESPONSE_CAN_ID;
     *tx_len = 0;
 
@@ -142,6 +150,10 @@ bool Bootloader_ProcessMessage(uint32_t rx_id, const uint8_t *rx_data, uint8_t r
         }
 
         case CMD_ENTER_BOOTLOADER: {
+            /* If payload provides a specific board target, verify match */
+            if (rx_len >= 2 && rx_data[1] != TARGET_BOARD_ID && rx_data[1] != 0xFFU) {
+                return false;
+            }
             tx_data[0] = CMD_ACK;
             tx_data[1] = CMD_ENTER_BOOTLOADER;
             tx_data[2] = BOOT_STATUS_OK;

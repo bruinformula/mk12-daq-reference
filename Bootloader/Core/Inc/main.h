@@ -72,10 +72,11 @@ extern "C" {
 #define CAN_TX_PORT                 GPIOB
 #define CAN_TX_PIN                  9U
 
-/* Memory Map Configuration (256 KB Flash, 8 KB Page Erase, Single Bank) */
+/* Memory Map Configuration (256 KB Flash, 8 KB Page Erase, Dual Bank) */
 #define FLASH_BASE_ADDR             0x08000000UL
 #define FLASH_PAGE_SIZE             8192UL       /* 8 KB page */
 #define FLASH_TOTAL_PAGES           32U
+#define FLASH_PAGES_PER_BANK        16U
 
 /* Bootloader Partition: Pages 0–3 (32 KB) - STRICTLY PROTECTED */
 #define BOOTLOADER_START_ADDR       0x08000000UL

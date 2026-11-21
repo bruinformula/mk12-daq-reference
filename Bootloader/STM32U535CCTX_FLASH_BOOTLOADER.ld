@@ -6,16 +6,16 @@
 
 ENTRY(Reset_Handler)
 
-/* Highest address of the user mode stack */
-_estack = ORIGIN(RAM) + LENGTH(RAM);    /* end of "RAM" Ram type memory */
+/* Highest address of the user mode stack (272 KB SRAM on STM32U535) */
+_estack = ORIGIN(RAM) + LENGTH(RAM);    /* 0x20000010 + (272K - 16) = 0x20044000 */
 
 _Min_Heap_Size = 0x200;  /* required amount of heap  */
 _Min_Stack_Size = 0x400; /* required amount of stack */
 
-/* Memories definition */
+/* Memories definition (reserve 0x20000000-0x2000000F for BOOTLOADER_MAGIC_ADDR) */
 MEMORY
 {
-  RAM   (xrw) : ORIGIN = 0x20000000, LENGTH = 272K
+  RAM   (xrw) : ORIGIN = 0x20000010, LENGTH = 272K - 16
   FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 32K
 }
 

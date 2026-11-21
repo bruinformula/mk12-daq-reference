@@ -41,7 +41,6 @@ extern "C" {
 /* Block sizes for streaming writes */
 #define CLASSIC_CAN_BLOCK_SIZE      96U   /* 12 frames * 8 bytes = 96 bytes (6 quad-words) */
 #define FDCAN_FRAME_PAYLOAD_SIZE    48U   /* 48 bytes (3 quad-words) per FD frame */
-#define QUADWORD_SIZE               16U   /* 128-bit flash write unit */
 
 /* ========================================================================= */
 /* Function Prototypes                                                       */

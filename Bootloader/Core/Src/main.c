@@ -56,11 +56,20 @@ int main(void)
 
         while (wait_iterations > 0) {
             if (FDCAN_Driver_Receive(&rx_msg)) {
-                if (rx_msg.id == TARGET_CAN_ID || rx_msg.id == BROADCAST_CAN_ID) {
+                if (rx_msg.len > 0 &&
+                    (rx_msg.id == TARGET_CAN_ID || rx_msg.id == BROADCAST_CAN_ID)) {
                     uint8_t cmd = rx_msg.data[0];
-                    if (cmd == CMD_ENTER_BOOTLOADER || cmd == CMD_PING) {
+                    if (cmd == CMD_PING) {
                         force_bootloader = true;
                         break;
+                    }
+                    if (cmd == CMD_ENTER_BOOTLOADER) {
+                        if (rx_msg.len < 2 ||
+                            rx_msg.data[1] == TARGET_BOARD_ID ||
+                            rx_msg.data[1] == 0xFFU) {
+                            force_bootloader = true;
+                            break;
+                        }
                     }
                 }
             }

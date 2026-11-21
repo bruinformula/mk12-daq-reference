@@ -7,15 +7,15 @@
 ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack (256 KB SRAM on STM32L552) */
-_estack = ORIGIN(RAM) + LENGTH(RAM);    /* 0x20000000 + 256K = 0x20040000 */
+_estack = ORIGIN(RAM) + LENGTH(RAM);    /* 0x20000010 + (256K - 16) = 0x20040000 */
 
 _Min_Heap_Size = 0x200;  /* required amount of heap  */
 _Min_Stack_Size = 0x400; /* required amount of stack */
 
-/* Memories definition */
+/* Memories definition (reserve 0x20000000-0x2000000F for BOOTLOADER_MAGIC_ADDR) */
 MEMORY
 {
-  RAM   (xrw) : ORIGIN = 0x20000000, LENGTH = 256K
+  RAM   (xrw) : ORIGIN = 0x20000010, LENGTH = 256K - 16
   FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 32K
 }
 
